@@ -2,17 +2,13 @@ package com.jun.springcloud;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.tomcat.util.json.JSONParser;
-import org.apache.tomcat.util.json.ParseException;
 
-import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
-
-
 
 public class StringTest {
 
@@ -54,12 +50,7 @@ public class StringTest {
                 this.map = null;
             }
         } catch (Exception e) {
-            if (e instanceof FileNotFoundException) {
-                System.out.println(e.getMessage());
-            }
-            if (e instanceof ParseException) {
-                System.out.println(e.getMessage());
-            }
+            System.out.println(e.getMessage());
             this.map = null;
         }
     }
