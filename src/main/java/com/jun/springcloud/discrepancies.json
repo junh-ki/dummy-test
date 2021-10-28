@@ -96,7 +96,11 @@
 		"Urlaubsplanung": "Ferienplanung",
 		"Urlauber": "Reisende",
 		"Urlaubsparadies": "Ferienparadies",
-		"ß": "ss"
+		"ß": "ss",
+
+		"Urlaub": "Ferien",
+		"Urlaubszeit": "Ferienzeit"
+
 	},
 	"1242": {
 		"casas e apartamentos de férias": "apartamentos e casas de temporada",

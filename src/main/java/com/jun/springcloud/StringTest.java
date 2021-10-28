@@ -14,25 +14,29 @@ public class StringTest {
 
     private Map<String, String> map;
     private final static String JSON_PATH = "./src/main/java/com/jun/springcloud/discrepancies.json";
-    private final static String INPUT_STRING =
+    private final static String UK_US_INPUT_STRING =
             "Holiday Rentals & Lettings - Holiday rental - holiday holidays - traveller travellers - " +
             "Log Cabins & Lodges Log cabins log cabin - Beach Houses beach houses beach house";
-    private final static String EXPECTED_STRING =
+    private final static String UK_US_EXPECTED_STRING =
             "Vacation rentals - Vacation rental - vacation vacations - traveler travelers - " +
             "Cabins Cabins cabin - Beach Rentals beach rentals beach rental";
+    private final static String DE_CH_INPUT_STRING =
+            "UrlaubstagUrlaubstageUrlaubUrlaubszeitUrlaubsortUrlaubsregionUrlaubsgästeUrlaubszielUrlaubsfotoUrlaubsdestinationUrlaubsplanungßUrlauberUrlaubsparadies";
+    private final static String DE_CH_EXPECTED_STRING =
+            "FerientagFerientageFerienFerienzeitFerienortFerienregionFeriengästeFerienzielFerienfotoFeriendestinationFerienplanungssReisendeFerienparadies";
 
     public void processLanguageDiscrepancies() {
-        this.initializeMap(2l);
+        this.initializeMap(342l);
 
-        String updatedContent = updateContent(INPUT_STRING, this.map);
+        String updatedContent = updateContent(DE_CH_INPUT_STRING, this.map);
 
         System.out.println("-----------------");
         System.out.println("Original String: ");
-        System.out.println(INPUT_STRING);
+        System.out.println(DE_CH_INPUT_STRING);
         System.out.println();
         System.out.println("-----------------");
         System.out.println("Expected String: ");
-        System.out.println(EXPECTED_STRING);
+        System.out.println(DE_CH_EXPECTED_STRING);
         System.out.println();
         System.out.println("-----------------");
         System.out.println("Modified String: ");
