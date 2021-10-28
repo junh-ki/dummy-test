@@ -6,11 +6,11 @@ import org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration;
 import org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration;
 
 @EnableAutoConfiguration(exclude={DataSourceAutoConfiguration.class, HibernateJpaAutoConfiguration.class})
-public class CouponserviceApplication {
-
+public class TestserviceApplication {
 	public static void main(String[] args) {
-		SpringApplication.run(CouponserviceApplication.class, args);
-		System.out.println("Yes");
+		SpringApplication.run(TestserviceApplication.class, args);
+		StringTest strTest = new StringTest();
+		strTest.processLanguageDiscrepancies();
 	}
 
 }
