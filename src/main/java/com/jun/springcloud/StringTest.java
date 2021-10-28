@@ -1,22 +1,33 @@
 package com.jun.springcloud;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.tomcat.util.json.JSONParser;
+import org.apache.tomcat.util.json.ParseException;
 
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
+
+
 
 public class StringTest {
 
     private Map<String, String> map;
+    private final static String JSON_PATH = "./src/main/java/com/jun/springcloud/discrepancies.json";
     private final static String INPUT_STRING =
             "Holiday Rentals & Lettings - Holiday rental - holiday holidays - traveller travellers - " +
-            "Log Cabins & Lodges log cabins log cabin - Beach Houses beach houses beach house";
+            "Log Cabins & Lodges Log cabins log cabin - Beach Houses beach houses beach house";
     private final static String EXPECTED_STRING =
             "Vacation rentals - Vacation rental - vacation vacations - traveler travelers - " +
             "Cabins Cabins cabin - Beach Rentals beach rentals beach rental";
 
     public void processLanguageDiscrepancies() {
-        this.initializeMap();
+        this.initializeMap(2l);
+
         String updatedContent = updateContent(INPUT_STRING, this.map);
 
         System.out.println("-----------------");
@@ -34,22 +45,23 @@ public class StringTest {
 
     }
 
-    public void initializeMap() {
-        this.map = new HashMap<>();
-        this.map.put("Holiday Rentals & Lettings", "Vacation rentals");
-        this.map.put("Holiday rental", "Vacation rental");
-        this.map.put("holiday", "vacation");
-        this.map.put("holidays", "vacations");
-        this.map.put("traveller", "traveler");
-        this.map.put("travellers", "travelers");
-        this.map.put("Log Cabins & Lodges", "Cabins");
-        this.map.put("log cabins", "Cabins");
-        this.map.put("log cabin", "cabin");
-        this.map.put("Beach Houses", "Beach Rentals");
-        this.map.put("beach houses", "beach rentals");
-        this.map.put("beach house", "beach rental");
-        this.map.put("Beach", "Bitch");
-        this.map.put("beach", "bitch");
+    public void initializeMap(Long domainId) {
+        try {
+            LinkedHashMap<String, Object> jsonMap = new JSONParser(new FileReader(JSON_PATH)).parseObject();
+            if (jsonMap.containsKey(domainId.toString())) {
+                this.map = (HashMap<String, String>) jsonMap.get(domainId.toString());
+            } else {
+                this.map = null;
+            }
+        } catch (Exception e) {
+            if (e instanceof FileNotFoundException) {
+                System.out.println(e.getMessage());
+            }
+            if (e instanceof ParseException) {
+                System.out.println(e.getMessage());
+            }
+            this.map = null;
+        }
     }
 
     private String updateContent(String content, Map<String, String> map) {
@@ -58,13 +70,13 @@ public class StringTest {
             return null;
         }
 
-        /* Step 1: bubble sort the keyword list (words from the master domain) by the length of keyword string */
-        String[] searchList = sortedStringArrayByLength(keywordArray);
+        /* Step 1: sort the keyword list (words from the master domain) by the length of keyword string */
+        Arrays.sort(keywordArray, Comparator.comparingInt(String::length).reversed());
         Map<Integer, String> replacementMap = new HashMap<>();
         int lastIndexToReplace = -1;
 
         /* Step 2: replace each key word to a regularly expressed index number */
-        for (int i = 0; i < searchList.length; i++) {
+        for (int i = 0; i < keywordArray.length; i++) {
             String keyword = keywordArray[i];
             replacementMap.put(i, map.get(keyword));
             String prev = content;
@@ -85,24 +97,6 @@ public class StringTest {
         }
 
         return content;
-    }
-
-    private String[] sortedStringArrayByLength(String[] strArray) {
-        for (int i = 0; i < strArray.length - 1; i++) {
-            boolean isSorted = true;
-            for (int j = i + 1; j < strArray.length; j++) {
-                if (strArray[i].length() < strArray[j].length()) {
-                    String temp = strArray[i];
-                    strArray[i] = strArray[j];
-                    strArray[j] = temp;
-                    isSorted = false;
-                }
-            }
-            if (isSorted) {
-                break;
-            }
-        }
-        return strArray;
     }
 
 }
