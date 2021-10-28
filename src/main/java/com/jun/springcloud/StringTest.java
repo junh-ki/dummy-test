@@ -1,14 +1,19 @@
 package com.jun.springcloud;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.text.CaseUtils;
 import org.apache.tomcat.util.json.JSONParser;
 
 import java.io.FileReader;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class StringTest {
 
@@ -59,21 +64,22 @@ public class StringTest {
         }
     }
 
-    private String updateContent(String content, Map<String, String> map) {
-        String[] keywordArray = map.keySet().toArray(new String[]{});
-        if (keywordArray.length != map.size()) {
+    private String updateContent(String content, Map<String, String> discrepancies) {
+        if (discrepancies == null || discrepancies.size() == 0) {
             return null;
         }
 
-        /* Step 1: sort the keyword list (words from the master domain) by the length of keyword string */
+        /* Step 1: gather all possible cases of keys in a map and sort the key set by length */
+        Map<String, String> discrepancyMap = getAllPossibleCasesOfPairs(discrepancies);
+        String[] keywordArray = new ArrayList<>(discrepancyMap.keySet()).toArray(new String[0]);
         Arrays.sort(keywordArray, Comparator.comparingInt(String::length).reversed());
-        Map<Integer, String> replacementMap = new HashMap<>();
-        int lastIndexToReplace = -1;
 
         /* Step 2: replace each key word to a regularly expressed index number */
+        Map<Integer, String> replacementMap = new HashMap<>();
+        int lastIndexToReplace = -1;
         for (int i = 0; i < keywordArray.length; i++) {
             String keyword = keywordArray[i];
-            replacementMap.put(i, map.get(keyword));
+            replacementMap.put(i, discrepancyMap.get(keyword));
             String prev = content;
             content = StringUtils.replace(content, keyword, "{" + i + "}");
             if (StringUtils.compare(prev, content) != 0) {
@@ -92,6 +98,49 @@ public class StringTest {
         }
 
         return content;
+    }
+
+    private Map<String, String> getAllPossibleCasesOfPairs(Map<String, String> discrepancies) {
+        List<String> searchList = new ArrayList<>();
+        List<String> replacementList = new ArrayList<>();
+        for (Map.Entry<String, String> entry : discrepancies.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            if (!searchList.contains(key)) {
+                searchList.add(key);
+                replacementList.add(value);
+            }
+            /* Lower-case */
+            String lowerKey = key.toLowerCase();
+            String lowerValue = value.toLowerCase();
+            if (!searchList.contains(lowerKey)) {
+                searchList.add(lowerKey);
+                replacementList.add(value.toLowerCase());
+            }
+            /* Upper-case */
+            String upperKey = key.toUpperCase();
+            if (!searchList.contains(upperKey)) {
+                searchList.add(upperKey);
+                replacementList.add(value.toUpperCase());
+            }
+            /* Camel-case*/
+            String camelKey = CaseUtils.toCamelCase(key, true);
+            if (!searchList.contains(camelKey)) {
+                searchList.add(camelKey);
+                replacementList.add(CaseUtils.toCamelCase(value, true));
+            }
+            /* First character capital */
+            String firstUpperKey = lowerKey.substring(0, 1).toUpperCase() + lowerKey.substring(1);
+            if (!searchList.contains(firstUpperKey)) {
+                searchList.add(firstUpperKey);
+                replacementList.add(lowerValue.substring(0, 1).toUpperCase() + lowerValue.substring(1));
+            }
+        }
+        return zipToMap(searchList, replacementList);
+    }
+
+    private Map<String, String> zipToMap(List<String> keys, List<String> values) {
+        return IntStream.range(0, keys.size()).boxed().collect(Collectors.toMap(keys::get, values::get));
     }
 
 }
