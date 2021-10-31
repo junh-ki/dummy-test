@@ -13,6 +13,8 @@ public class TestserviceApplication {
 		strTest.processLanguageDiscrepancies();
 		RegexDemo regexDemo = new RegexDemo();
 		regexDemo.run();
+		StringBuilderDemo stringBuilderDemo = new StringBuilderDemo();
+		stringBuilderDemo.run();
 	}
 
 }
