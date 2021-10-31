@@ -11,6 +11,8 @@ public class TestserviceApplication {
 		SpringApplication.run(TestserviceApplication.class, args);
 		StringTest strTest = new StringTest();
 		strTest.processLanguageDiscrepancies();
+		RegexDemo regexDemo = new RegexDemo();
+		regexDemo.run();
 	}
 
 }
