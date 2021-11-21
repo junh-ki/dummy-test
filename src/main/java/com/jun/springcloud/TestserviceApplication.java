@@ -1,6 +1,7 @@
 package com.jun.springcloud;
 
 import com.jun.springcloud.builder.NutritionFacts;
+import com.jun.springcloud.singleton.Elvis;
 import com.jun.springcloud.string.RegexDemo;
 import com.jun.springcloud.string.StringBuilderDemo;
 import com.jun.springcloud.string.StringTest;
@@ -14,7 +15,8 @@ public class TestserviceApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(TestserviceApplication.class, args);
 		//testString();
-		testBuilder();
+		//testBuilder();
+		testSingleton();
 	}
 
 	public static void testString() {
@@ -34,6 +36,10 @@ public class TestserviceApplication {
 				.sodium(3)
 				.build();
 		System.out.println(nutritionFacts.toString());
+	}
+
+	private static void testSingleton() {
+		System.out.println(Elvis.getInstance().toString());
 	}
 
 }
