@@ -1,4 +1,4 @@
-package com.jun.springcloud;
+package com.jun.springcloud.string;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.text.CaseUtils;

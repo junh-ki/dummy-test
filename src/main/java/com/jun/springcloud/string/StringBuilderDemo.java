@@ -1,4 +1,4 @@
-package com.jun.springcloud;
+package com.jun.springcloud.string;
 
 import java.util.Arrays;
 import java.util.List;
