@@ -1,30 +1,33 @@
 package com.jun.springcloud.google;
 
-import static com.google.api.ads.common.lib.utils.Builder.DEFAULT_CONFIGURATION_FILENAME;
-import static java.nio.charset.StandardCharsets.UTF_8;
-
 import com.beust.jcommander.Parameter;
 import com.google.ads.googleads.lib.GoogleAdsClient;
 import com.google.ads.googleads.migration.utils.ArgumentNames;
 import com.google.ads.googleads.migration.utils.CodeSampleParams;
 import com.google.ads.googleads.v10.common.ExpandedTextAdInfo;
+import com.google.ads.googleads.v10.common.KeywordInfo;
 import com.google.ads.googleads.v10.common.ManualCpc;
 import com.google.ads.googleads.v10.enums.AdGroupAdStatusEnum.AdGroupAdStatus;
+import com.google.ads.googleads.v10.enums.AdGroupCriterionStatusEnum.AdGroupCriterionStatus;
 import com.google.ads.googleads.v10.enums.AdGroupStatusEnum.AdGroupStatus;
 import com.google.ads.googleads.v10.enums.AdGroupTypeEnum.AdGroupType;
 import com.google.ads.googleads.v10.enums.AdvertisingChannelTypeEnum.AdvertisingChannelType;
 import com.google.ads.googleads.v10.enums.BudgetDeliveryMethodEnum.BudgetDeliveryMethod;
 import com.google.ads.googleads.v10.enums.CampaignStatusEnum.CampaignStatus;
+import com.google.ads.googleads.v10.enums.KeywordMatchTypeEnum.KeywordMatchType;
 import com.google.ads.googleads.v10.errors.GoogleAdsError;
 import com.google.ads.googleads.v10.errors.GoogleAdsException;
 import com.google.ads.googleads.v10.resources.Ad;
 import com.google.ads.googleads.v10.resources.AdGroup;
 import com.google.ads.googleads.v10.resources.AdGroupAd;
+import com.google.ads.googleads.v10.resources.AdGroupCriterion;
 import com.google.ads.googleads.v10.resources.Campaign;
 import com.google.ads.googleads.v10.resources.Campaign.NetworkSettings;
 import com.google.ads.googleads.v10.resources.CampaignBudget;
 import com.google.ads.googleads.v10.services.AdGroupAdOperation;
 import com.google.ads.googleads.v10.services.AdGroupAdServiceClient;
+import com.google.ads.googleads.v10.services.AdGroupCriterionOperation;
+import com.google.ads.googleads.v10.services.AdGroupCriterionServiceClient;
 import com.google.ads.googleads.v10.services.AdGroupOperation;
 import com.google.ads.googleads.v10.services.AdGroupServiceClient;
 import com.google.ads.googleads.v10.services.CampaignBudgetOperation;
@@ -36,36 +39,16 @@ import com.google.ads.googleads.v10.services.GoogleAdsServiceClient;
 import com.google.ads.googleads.v10.services.GoogleAdsServiceClient.SearchPagedResponse;
 import com.google.ads.googleads.v10.services.MutateAdGroupAdResult;
 import com.google.ads.googleads.v10.services.MutateAdGroupAdsResponse;
+import com.google.ads.googleads.v10.services.MutateAdGroupCriteriaResponse;
+import com.google.ads.googleads.v10.services.MutateAdGroupCriterionResult;
 import com.google.ads.googleads.v10.services.MutateAdGroupsResponse;
 import com.google.ads.googleads.v10.services.MutateCampaignBudgetsResponse;
 import com.google.ads.googleads.v10.services.MutateCampaignsResponse;
 import com.google.ads.googleads.v10.services.SearchGoogleAdsRequest;
 import com.google.ads.googleads.v10.utils.ResourceNames;
-import com.google.api.ads.adwords.axis.factory.AdWordsServices;
-import com.google.api.ads.adwords.axis.v201809.cm.AdGroupCriterion;
-import com.google.api.ads.adwords.axis.v201809.cm.AdGroupCriterionOperation;
-import com.google.api.ads.adwords.axis.v201809.cm.AdGroupCriterionReturnValue;
-import com.google.api.ads.adwords.axis.v201809.cm.AdGroupCriterionServiceInterface;
-import com.google.api.ads.adwords.axis.v201809.cm.BiddableAdGroupCriterion;
-import com.google.api.ads.adwords.axis.v201809.cm.Keyword;
-import com.google.api.ads.adwords.axis.v201809.cm.KeywordMatchType;
-import com.google.api.ads.adwords.axis.v201809.cm.Operator;
-import com.google.api.ads.adwords.axis.v201809.cm.UrlList;
-import com.google.api.ads.adwords.axis.v201809.cm.UserStatus;
-import com.google.api.ads.adwords.lib.client.AdWordsSession;
-import com.google.api.ads.adwords.lib.factory.AdWordsServicesInterface;
-import com.google.api.ads.common.lib.auth.OfflineCredentials;
-import com.google.api.ads.common.lib.auth.OfflineCredentials.Api;
-import com.google.api.ads.common.lib.conf.ConfigurationLoadException;
-import com.google.api.ads.common.lib.exception.OAuthException;
-import com.google.api.ads.common.lib.exception.ValidationException;
-import com.google.api.client.auth.oauth2.Credential;
 import com.google.common.collect.ImmutableList;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.URLEncoder;
-import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -73,15 +56,15 @@ import java.util.stream.Collectors;
 import org.joda.time.DateTime;
 
 /**
- * This code example is the fifth in a series of code examples that shows how to create a Search
+ * This code example is the last in a series of code examples that shows how to create a Search
  * campaign using the AdWords API, and then migrate it to the Google Ads API one functionality at a
- * time. See other examples for code examples in various stages of migration.
+ * time. See Step0 through Step5 for code examples in various stages of migration.
  *
- * <p>In this code example, the functionality to create a campaign budget, a search campaign, an ad
- * group and expanded text ads have been migrated to the Google Ads API. The only remaining
- * functionality that uses the AdWords API is creating keywords.
+ * <p>This code example represents the final state, where all the functionality - create a campaign
+ * budget, a search campaign, an ad group, keywords, and expanded text ads have all been migrated to
+ * using the Google Ads API. The AdWords API is not used.
  */
-public class CreateCompleteCampaignBothApisPhase4 {
+public class CreateCompleteCampaignGoogleAdsApiOnly {
 
     private static final int PAGE_SIZE = 1_000;
 
@@ -89,15 +72,15 @@ public class CreateCompleteCampaignBothApisPhase4 {
 
     private static final List<String> KEYWORDS_TO_ADD = Arrays.asList("mars cruise", "space hotel");
 
-    private static class CreateCompleteCampaignBothApisPhase4ParamsParams extends CodeSampleParams {
+    private static class CreateCompleteCampaignGoogleAdsApiOnlyParams extends CodeSampleParams {
 
         @Parameter(names = ArgumentNames.CUSTOMER_ID, required = true)
         private Long customerId;
     }
 
     public static void main(String[] args) {
-        CreateCompleteCampaignBothApisPhase4ParamsParams params =
-                new CreateCompleteCampaignBothApisPhase4ParamsParams();
+        CreateCompleteCampaignGoogleAdsApiOnlyParams params =
+                new CreateCompleteCampaignGoogleAdsApiOnlyParams();
         if (!params.parseArguments(args)) {
 
             // Either pass the required parameters for this example on the command line, or insert them
@@ -118,42 +101,8 @@ public class CreateCompleteCampaignBothApisPhase4 {
             return;
         }
 
-        // Initializes the AdWords client.
-        AdWordsSession session;
         try {
-            // Generates a refreshable OAuth2 credential for AdWords API.
-            Credential oAuth2Credential =
-                    new OfflineCredentials.Builder()
-                            .forApi(Api.ADWORDS)
-                            .fromFile()
-                            .build()
-                            .generateCredential();
-
-            // Constructs an AdWordsSession.
-            session =
-                    new AdWordsSession.Builder().fromFile().withOAuth2Credential(oAuth2Credential).build();
-        } catch (ConfigurationLoadException cle) {
-            System.err.printf(
-                    "Failed to load configuration from the %s file. Exception: %s%n",
-                    DEFAULT_CONFIGURATION_FILENAME, cle);
-            return;
-        } catch (ValidationException ve) {
-            System.err.printf(
-                    "Invalid configuration in the %s file. Exception: %s%n",
-                    DEFAULT_CONFIGURATION_FILENAME, ve);
-            return;
-        } catch (OAuthException oe) {
-            System.err.printf(
-                    "Failed to create OAuth credentials. Check OAuth settings in the %s file. "
-                            + "Exception: %s%n",
-                    DEFAULT_CONFIGURATION_FILENAME, oe);
-            return;
-        }
-        AdWordsServicesInterface adWordsServices = AdWordsServices.getInstance();
-
-        try {
-            new CreateCompleteCampaignBothApisPhase4()
-                    .runExample(googleAdsClient, adWordsServices, session, params.customerId);
+            new CreateCompleteCampaignGoogleAdsApiOnly().runExample(googleAdsClient, params.customerId);
         } catch (GoogleAdsException gae) {
             // GoogleAdsException is the base class for most exceptions thrown by an API request.
             // Instances of this exception have a message and a GoogleAdsFailure that contains a
@@ -166,10 +115,6 @@ public class CreateCompleteCampaignBothApisPhase4 {
             for (GoogleAdsError googleAdsError : gae.getGoogleAdsFailure().getErrorsList()) {
                 System.err.printf("  Error %d: %s%n", i++, googleAdsError);
             }
-        } catch (RemoteException re) {
-            System.err.printf("Request failed unexpectedly due to RemoteException: %s%n", re);
-        } catch (UnsupportedEncodingException ue) {
-            System.err.printf("Example failed due to encoding exception: %s%n", ue);
         }
     }
 
@@ -179,20 +124,13 @@ public class CreateCompleteCampaignBothApisPhase4 {
      * @param googleAdsClient the Google Ads API client.
      * @param customerId the client customer ID.
      * @throws GoogleAdsException if an API request failed with one or more service errors.
-     * @throws RemoteException if the API request failed due to other errors.
-     * @throws UnsupportedEncodingException if encoding the final URL failed.
      */
-    private void runExample(
-            GoogleAdsClient googleAdsClient,
-            AdWordsServicesInterface adWordsServices,
-            AdWordsSession session,
-            long customerId)
-            throws RemoteException, UnsupportedEncodingException {
+    private void runExample(GoogleAdsClient googleAdsClient, long customerId) {
         CampaignBudget budget = createBudget(googleAdsClient, customerId);
         Campaign campaign = createCampaign(googleAdsClient, customerId, budget);
         AdGroup adGroup = createAdGroup(googleAdsClient, customerId, campaign);
         createTextAds(googleAdsClient, customerId, adGroup, NUMBER_OF_ADS);
-        createKeywords(adWordsServices, session, adGroup, KEYWORDS_TO_ADD);
+        createKeywords(googleAdsClient, customerId, adGroup, KEYWORDS_TO_ADD);
     }
 
     /**
@@ -369,7 +307,7 @@ public class CreateCompleteCampaignBothApisPhase4 {
             GoogleAdsClient googleAdsClient, long customerId, Campaign campaign) {
         String campaignResourceName = ResourceNames.campaign(customerId, campaign.getId());
 
-        // Creates ad group, setting an optional CPC value.
+        // Creates the ad group, setting an optional CPC value.
         AdGroup adGroup =
                 AdGroup.newBuilder()
                         .setName("Earth to Mars Cruises #" + System.currentTimeMillis())
@@ -456,7 +394,7 @@ public class CreateCompleteCampaignBothApisPhase4 {
                                             .setExpandedTextAd(
                                                     ExpandedTextAdInfo.newBuilder()
                                                             .setDescription("Buy your tickets now!")
-                                                            .setHeadlinePart1(                    "Cruise #" + i + " to Mars")
+                                                            .setHeadlinePart1("Cruise #" + i + " to Mars")
                                                             .setHeadlinePart2("Best Space Cruise Line")
                                                             .setPath1("path1")
                                                             .setPath2("path2")
@@ -554,67 +492,119 @@ public class CreateCompleteCampaignBothApisPhase4 {
     /**
      * Creates keywords ad group criteria.
      *
-     * @param adWordsServices the Google AdWords services interface.
-     * @param session the client session.
+     * @param googleAdsClient the Google Ads API client.
+     * @param customerId the client customer ID.
      * @param adGroup the ad group for the new criteria.
      * @param keywordsToAdd the keywords to add to the text ads.
-     * @throws RemoteException if the API request failed due to other errors.
-     * @throws UnsupportedEncodingException if encoding the final URL failed.
+     * @throws GoogleAdsException if an API request failed with one or more service errors.
      */
-    private AdGroupCriterion[] createKeywords(
-            AdWordsServicesInterface adWordsServices,
-            AdWordsSession session,
+    private List<AdGroupCriterion> createKeywords(
+            GoogleAdsClient googleAdsClient,
+            long customerId,
             AdGroup adGroup,
-            List<String> keywordsToAdd)
-            throws RemoteException, UnsupportedEncodingException {
-        // Gets the AdGroupCriterionService.
-        AdGroupCriterionServiceInterface adGroupCriterionService =
-                adWordsServices.get(session, AdGroupCriterionServiceInterface.class);
+            List<String> keywordsToAdd) {
+        String adGroupResourceName = ResourceNames.adGroup(customerId, adGroup.getId());
 
         List<AdGroupCriterionOperation> operations = new ArrayList<>();
 
-        for (String keywordToAdd : keywordsToAdd) {
-            // Creates the keyword.
-            Keyword keyword = new Keyword();
-            keyword.setText(keywordToAdd);
-            keyword.setMatchType(KeywordMatchType.EXACT);
-
-            // Creates biddable ad group criterion.
-            BiddableAdGroupCriterion keywordBiddableAdGroupCriterion = new BiddableAdGroupCriterion();
-            keywordBiddableAdGroupCriterion.setAdGroupId(adGroup.getId());
-            keywordBiddableAdGroupCriterion.setCriterion(keyword);
-
-            // You can optionally provide these field(s).
-            keywordBiddableAdGroupCriterion.setUserStatus(UserStatus.PAUSED);
-
-            String encodedFinalUrl =
-                    String.format(
-                            "http://example.com/mars/cruise/?kw=%s",
-                            URLEncoder.encode(keyword.getText(), UTF_8.name()));
-            keywordBiddableAdGroupCriterion.setFinalUrls(new UrlList(new String[] {encodedFinalUrl}));
+        for (String keywordText : keywordsToAdd) {
+            // Creates the keyword criterion
+            AdGroupCriterion adGroupCriterion =
+                    AdGroupCriterion.newBuilder()
+                            .setAdGroup(adGroupResourceName)
+                            .setStatus(AdGroupCriterionStatus.ENABLED)
+                            .setKeyword(
+                                    KeywordInfo.newBuilder()
+                                            .setText(keywordText)
+                                            .setMatchType(KeywordMatchType.EXACT)
+                                            .build())
+                            .build();
 
             // Creates the operation.
-            AdGroupCriterionOperation keywordAdGroupCriterionOperation = new AdGroupCriterionOperation();
-            keywordAdGroupCriterionOperation.setOperand(keywordBiddableAdGroupCriterion);
-            keywordAdGroupCriterionOperation.setOperator(Operator.ADD);
-
-            operations.add(keywordAdGroupCriterionOperation);
+            AdGroupCriterionOperation op =
+                    AdGroupCriterionOperation.newBuilder().setCreate(adGroupCriterion).build();
+            operations.add(op);
         }
 
-        // Adds the keywords.
-        AdGroupCriterionReturnValue result =
-                adGroupCriterionService.mutate(operations.toArray(new AdGroupCriterionOperation[0]));
+        // Gets the AdGroupCriterionService.
+        try (AdGroupCriterionServiceClient adGroupCriterionServiceClient =
+                     googleAdsClient.getLatestVersion().createAdGroupCriterionServiceClient()) {
+            // Adds the keywords
+            MutateAdGroupCriteriaResponse response =
+                    adGroupCriterionServiceClient.mutateAdGroupCriteria(
+                            Long.toString(customerId), operations);
+            System.out.printf("Added %d keywords:%n", response.getResultsCount());
+            // Creates a list of new keyword resource names
+            List<String> newCriteriaResourceNames = new ArrayList<>();
+            for (MutateAdGroupCriterionResult result : response.getResultsList()) {
+                newCriteriaResourceNames.add(result.getResourceName());
+            }
 
-        // Displays the results.
-        for (AdGroupCriterion adGroupCriterionResult : result.getValue()) {
-            System.out.printf(
-                    "Keyword ad group criterion with ad group ID %d, criterion ID %d, "
-                            + "text '%s', and match type '%s' was added.%n",
-                    adGroupCriterionResult.getAdGroupId(),
-                    adGroupCriterionResult.getCriterion().getId(),
-                    ((Keyword) adGroupCriterionResult.getCriterion()).getText(),
-                    ((Keyword) adGroupCriterionResult.getCriterion()).getMatchType());
+            // Retrieves the newly created keywords.
+            List<AdGroupCriterion> newCriteria =
+                    getKeywords(googleAdsClient, customerId, newCriteriaResourceNames);
+            // Displays the results.
+            for (AdGroupCriterion newCriterion : newCriteria) {
+                System.out.printf(
+                        "Keyword with text '%s', ID %s, and match type '%s' was retrieved for ad group '%s'.%n",
+                        newCriterion.getKeyword().getText(),
+                        newCriterion.getCriterionId(),
+                        newCriterion.getKeyword().getMatchType(),
+                        adGroup.getName());
+            }
+            return newCriteria;
         }
-        return result.getValue();
+    }
+
+    /**
+     * Retrieves the keyword ad group criteria.
+     *
+     * @param googleAdsClient the Google Ads API client.
+     * @param customerId the client customer ID.
+     * @param newResourceNames resource names of the new ad group criteria.
+     * @throws GoogleAdsException if an API request failed with one or more service errors.
+     */
+    private List<AdGroupCriterion> getKeywords(
+            GoogleAdsClient googleAdsClient, long customerId, List<String> newResourceNames) {
+        // Gets the GoogleAdsService.
+        try (GoogleAdsServiceClient googleAdsServiceClient =
+                     googleAdsClient.getLatestVersion().createGoogleAdsServiceClient()) {
+
+            // Creates the request.
+            SearchGoogleAdsRequest request =
+                    SearchGoogleAdsRequest.newBuilder()
+                            .setCustomerId(Long.toString(customerId))
+                            .setPageSize(PAGE_SIZE)
+                            // Creates the search query.
+                            .setQuery(
+                                    String.format(
+                                            "SELECT "
+                                                    + "ad_group.id, "
+                                                    + "ad_group.status, "
+                                                    + "ad_group_criterion.criterion_id, "
+                                                    + "ad_group_criterion.keyword.text, "
+                                                    + "ad_group_criterion.keyword.match_type "
+                                                    + "FROM ad_group_criterion "
+                                                    + "WHERE ad_group_criterion.type = 'KEYWORD' "
+                                                    + "AND ad_group.status = 'ENABLED' "
+                                                    + "AND ad_group_criterion.status IN ('ENABLED', 'PAUSED') "
+                                                    + "AND ad_group_criterion.resource_name IN (%s) ",
+                                            String.join(
+                                                    ", ",
+                                                    newResourceNames.stream()
+                                                            .map(resourceName -> String.format("'%s'", resourceName))
+                                                            .collect(Collectors.toList()))))
+                            .build();
+
+            // Retrieves the adGroupCriteria.
+            SearchPagedResponse response = googleAdsServiceClient.search(request);
+
+            // Creates and returns a list of adGroupCriteria
+            List<AdGroupCriterion> adGroupCriteria = new ArrayList<>();
+            for (GoogleAdsRow googleAdsRow : response.iterateAll()) {
+                adGroupCriteria.add(googleAdsRow.getAdGroupCriterion());
+            }
+            return adGroupCriteria;
+        }
     }
 }
