@@ -7,16 +7,25 @@ import com.beust.jcommander.Parameter;
 import com.google.ads.googleads.lib.GoogleAdsClient;
 import com.google.ads.googleads.migration.utils.ArgumentNames;
 import com.google.ads.googleads.migration.utils.CodeSampleParams;
+import com.google.ads.googleads.v10.common.ManualCpc;
+import com.google.ads.googleads.v10.enums.AdvertisingChannelTypeEnum.AdvertisingChannelType;
 import com.google.ads.googleads.v10.enums.BudgetDeliveryMethodEnum.BudgetDeliveryMethod;
+import com.google.ads.googleads.v10.enums.CampaignStatusEnum.CampaignStatus;
 import com.google.ads.googleads.v10.errors.GoogleAdsError;
 import com.google.ads.googleads.v10.errors.GoogleAdsException;
+import com.google.ads.googleads.v10.resources.Campaign;
+import com.google.ads.googleads.v10.resources.Campaign.NetworkSettings;
 import com.google.ads.googleads.v10.resources.CampaignBudget;
 import com.google.ads.googleads.v10.services.CampaignBudgetOperation;
 import com.google.ads.googleads.v10.services.CampaignBudgetServiceClient;
+import com.google.ads.googleads.v10.services.CampaignOperation;
+import com.google.ads.googleads.v10.services.CampaignServiceClient;
 import com.google.ads.googleads.v10.services.GoogleAdsServiceClient;
 import com.google.ads.googleads.v10.services.GoogleAdsServiceClient.SearchPagedResponse;
 import com.google.ads.googleads.v10.services.MutateCampaignBudgetsResponse;
+import com.google.ads.googleads.v10.services.MutateCampaignsResponse;
 import com.google.ads.googleads.v10.services.SearchGoogleAdsRequest;
+import com.google.ads.googleads.v10.utils.ResourceNames;
 import com.google.api.ads.adwords.axis.factory.AdWordsServices;
 import com.google.api.ads.adwords.axis.v201809.cm.AdGroup;
 import com.google.api.ads.adwords.axis.v201809.cm.AdGroupAd;
@@ -34,23 +43,14 @@ import com.google.api.ads.adwords.axis.v201809.cm.AdGroupReturnValue;
 import com.google.api.ads.adwords.axis.v201809.cm.AdGroupServiceInterface;
 import com.google.api.ads.adwords.axis.v201809.cm.AdGroupStatus;
 import com.google.api.ads.adwords.axis.v201809.cm.AdRotationMode;
-import com.google.api.ads.adwords.axis.v201809.cm.AdvertisingChannelType;
 import com.google.api.ads.adwords.axis.v201809.cm.BiddableAdGroupCriterion;
 import com.google.api.ads.adwords.axis.v201809.cm.BiddingStrategyConfiguration;
-import com.google.api.ads.adwords.axis.v201809.cm.BiddingStrategyType;
 import com.google.api.ads.adwords.axis.v201809.cm.Bids;
-import com.google.api.ads.adwords.axis.v201809.cm.Budget;
-import com.google.api.ads.adwords.axis.v201809.cm.Campaign;
-import com.google.api.ads.adwords.axis.v201809.cm.CampaignOperation;
-import com.google.api.ads.adwords.axis.v201809.cm.CampaignReturnValue;
-import com.google.api.ads.adwords.axis.v201809.cm.CampaignServiceInterface;
-import com.google.api.ads.adwords.axis.v201809.cm.CampaignStatus;
 import com.google.api.ads.adwords.axis.v201809.cm.CpcBid;
 import com.google.api.ads.adwords.axis.v201809.cm.ExpandedTextAd;
 import com.google.api.ads.adwords.axis.v201809.cm.Keyword;
 import com.google.api.ads.adwords.axis.v201809.cm.KeywordMatchType;
 import com.google.api.ads.adwords.axis.v201809.cm.Money;
-import com.google.api.ads.adwords.axis.v201809.cm.NetworkSetting;
 import com.google.api.ads.adwords.axis.v201809.cm.Operator;
 import com.google.api.ads.adwords.axis.v201809.cm.UrlList;
 import com.google.api.ads.adwords.axis.v201809.cm.UserStatus;
@@ -74,15 +74,15 @@ import java.util.List;
 import org.joda.time.DateTime;
 
 /**
- * This code example is the second in a series of code examples that shows how to create a Search
+ * This code example is the third in a series of code examples that shows how to create a Search
  * campaign using the AdWords API, and then migrate it to the Google Ads API one functionality at a
  * time. See other examples for code examples in various stages of migration.
  *
- * <p>In this code example, the functionality to create campaign a budget has been migrated to the
- * Google Ads API. The rest of the functionality - creating a Search campaign, ad groups, keywords
+ * <p>In this code example, the functionality to create a campaign budget and search campaign have
+ * been migrated to the Google Ads API. The rest of the functionality - creating ad groups, keywords
  * and expanded text ads are done using the AdWords API.
  */
-public class CreateCompleteCampaignBothApisPhase1 {
+public class CreateCompleteCampaignBothApisPhase2 {
 
     private static final int PAGE_SIZE = 1_000;
 
@@ -90,15 +90,15 @@ public class CreateCompleteCampaignBothApisPhase1 {
 
     private static final List<String> KEYWORDS_TO_ADD = Arrays.asList("mars cruise", "space hotel");
 
-    private static class CreateCompleteCampaignBothApisPhase1Params extends CodeSampleParams {
+    private static class CreateCompleteCampaignBothApisPhase2Params extends CodeSampleParams {
 
         @Parameter(names = ArgumentNames.CUSTOMER_ID, required = true)
         private Long customerId;
     }
 
     public static void main(String[] args) {
-        CreateCompleteCampaignBothApisPhase1Params params =
-                new CreateCompleteCampaignBothApisPhase1Params();
+        CreateCompleteCampaignBothApisPhase2Params params =
+                new CreateCompleteCampaignBothApisPhase2Params();
         if (!params.parseArguments(args)) {
 
             // Either pass the required parameters for this example on the command line, or insert them
@@ -153,7 +153,7 @@ public class CreateCompleteCampaignBothApisPhase1 {
         AdWordsServicesInterface adWordsServices = AdWordsServices.getInstance();
 
         try {
-            new CreateCompleteCampaignBothApisPhase1()
+            new CreateCompleteCampaignBothApisPhase2()
                     .runExample(googleAdsClient, adWordsServices, session, params.customerId);
         } catch (GoogleAdsException gae) {
             // GoogleAdsException is the base class for most exceptions thrown by an API request.
@@ -190,7 +190,7 @@ public class CreateCompleteCampaignBothApisPhase1 {
             long customerId)
             throws RemoteException, UnsupportedEncodingException {
         CampaignBudget budget = createBudget(googleAdsClient, customerId);
-        Campaign campaign = createCampaign(adWordsServices, session, budget);
+        Campaign campaign = createCampaign(googleAdsClient, customerId, budget);
         AdGroup adGroup = createAdGroup(adWordsServices, session, campaign);
         createTextAds(adWordsServices, session, adGroup, NUMBER_OF_ADS);
         createKeywords(adWordsServices, session, adGroup, KEYWORDS_TO_ADD);
@@ -268,66 +268,94 @@ public class CreateCompleteCampaignBothApisPhase1 {
     /**
      * Creates a campaign.
      *
-     * @param adWordsServices the Google AdWords services interface.
-     * @param session the client session.
+     * @param googleAdsClient the Google Ads API client.
+     * @param customerId the client customer ID.
      * @param budget the budget for the campaign.
-     * @throws RemoteException if the API request failed due to other errors.
+     * @throws GoogleAdsException if an API request failed with one or more service errors.
      */
     private Campaign createCampaign(
-            AdWordsServicesInterface adWordsServices, AdWordsSession session, CampaignBudget budget)
-            throws RemoteException {
-        // Gets the CampaignService.
-        CampaignServiceInterface campaignService =
-                adWordsServices.get(session, CampaignServiceInterface.class);
+            GoogleAdsClient googleAdsClient, long customerId, CampaignBudget budget) {
+        String budgetResourceName = ResourceNames.campaignBudget(customerId, budget.getId());
+
+        // Configures the campaign network options
+        NetworkSettings networkSettings =
+                NetworkSettings.newBuilder()
+                        .setTargetGoogleSearch(true)
+                        .setTargetSearchNetwork(true)
+                        .setTargetContentNetwork(false)
+                        .setTargetPartnerSearchNetwork(false)
+                        .build();
 
         // Creates the campaign.
-        Campaign campaign = new Campaign();
-        campaign.setName("Interplanetary Cruise #" + System.currentTimeMillis());
-
-        // Recommendation: Set the campaign to PAUSED when creating it to prevent
-        // the ads from immediately serving. Set to ENABLED once you've added
-        // targeting and the ads are ready to serve.
-        campaign.setStatus(CampaignStatus.PAUSED);
-
-        BiddingStrategyConfiguration biddingStrategyConfiguration = new BiddingStrategyConfiguration();
-        biddingStrategyConfiguration.setBiddingStrategyType(BiddingStrategyType.MANUAL_CPC);
-        campaign.setBiddingStrategyConfiguration(biddingStrategyConfiguration);
-
-        // You can optionally provide these field(s).
-        campaign.setStartDate(new DateTime().plusDays(1).toString("yyyyMMdd"));
-        campaign.setEndDate(new DateTime().plusDays(30).toString("yyyyMMdd"));
-
-        // Only the budgetId should be sent, all other fields will be ignored by CampaignService.
-        Budget newBudget = new Budget();
-        newBudget.setBudgetId(budget.getId());
-        campaign.setBudget(newBudget);
-
-        campaign.setAdvertisingChannelType(AdvertisingChannelType.SEARCH);
-
-        // Sets the campaign network options to Search and Search Network.
-        NetworkSetting networkSetting = new NetworkSetting();
-        networkSetting.setTargetGoogleSearch(true);
-        networkSetting.setTargetSearchNetwork(true);
-        networkSetting.setTargetContentNetwork(false);
-        networkSetting.setTargetPartnerSearchNetwork(false);
-        campaign.setNetworkSetting(networkSetting);
+        Campaign campaign =
+                Campaign.newBuilder()
+                        .setName("Interplanetary Cruise #" + System.currentTimeMillis())
+                        .setAdvertisingChannelType(AdvertisingChannelType.SEARCH)
+                        // Recommendation: Set the campaign to PAUSED when creating it to prevent
+                        // the ads from immediately serving. Set to ENABLED once you've added
+                        // targeting and the ads are ready to serve
+                        .setStatus(CampaignStatus.PAUSED)
+                        // Sets the bidding strategy and budget.
+                        .setManualCpc(ManualCpc.newBuilder().build())
+                        .setCampaignBudget(budgetResourceName)
+                        // Adds the networkSettings configured above.
+                        .setNetworkSettings(networkSettings)
+                        // Optional: sets the start & end dates.
+                        .setStartDate(new DateTime().plusDays(1).toString("yyyyMMdd"))
+                        .setEndDate(new DateTime().plusDays(30).toString("yyyyMMdd"))
+                        .build();
 
         // Creates the operation.
-        CampaignOperation operation = new CampaignOperation();
-        operation.setOperand(campaign);
-        operation.setOperator(Operator.ADD);
+        CampaignOperation op = CampaignOperation.newBuilder().setCreate(campaign).build();
 
-        CampaignOperation[] operations = new CampaignOperation[] {operation};
+        // Gets the Campaign service.
+        try (CampaignServiceClient campaignServiceClient =
+                     googleAdsClient.getLatestVersion().createCampaignServiceClient()) {
+            // Adds the campaign.
+            MutateCampaignsResponse response =
+                    campaignServiceClient.mutateCampaigns(Long.toString(customerId), ImmutableList.of(op));
+            String campaignResourceName = response.getResults(0).getResourceName();
+            // Retrieves the campaign.
+            Campaign newCampaign = getCampaign(googleAdsClient, customerId, campaignResourceName);
+            // Displays the results.
+            System.out.printf(
+                    "Campaign with ID %s and name '%s' was created.%n",
+                    newCampaign.getId(), newCampaign.getName());
+            return newCampaign;
+        }
+    }
 
-        // Adds the campaign.
-        CampaignReturnValue result = campaignService.mutate(operations);
+    /**
+     * Retrieves the campaign.
+     *
+     * @param googleAdsClient the Google Ads API client.
+     * @param customerId the client customer ID.
+     * @param campaignResourceName resource name of the new campaign.
+     * @throws GoogleAdsException if an API request failed with one or more service errors.
+     */
+    private Campaign getCampaign(
+            GoogleAdsClient googleAdsClient, long customerId, String campaignResourceName) {
+        // Gets the GoogleAdsService.
+        try (GoogleAdsServiceClient googleAdsServiceClient =
+                     googleAdsClient.getLatestVersion().createGoogleAdsServiceClient()) {
 
-        Campaign campaignResult = result.getValue(0);
-        // Displays the campaign.
-        System.out.printf(
-                "Campaign with ID %d and name '%s' was created.%n",
-                campaignResult.getId(), campaignResult.getName());
-        return campaignResult;
+            // Creates the request.
+            SearchGoogleAdsRequest request =
+                    SearchGoogleAdsRequest.newBuilder()
+                            .setCustomerId(Long.toString(customerId))
+                            .setPageSize(PAGE_SIZE)
+                            .setQuery(
+                                    String.format(
+                                            "SELECT campaign.id, campaign.name, campaign.resource_name "
+                                                    + "FROM campaign "
+                                                    + "WHERE campaign.resource_name = '%s'",
+                                            campaignResourceName))
+                            .build();
+
+            // Retrieves the campaign.
+            SearchPagedResponse searchPagedResponse = googleAdsServiceClient.search(request);
+            return searchPagedResponse.getPage().getResponse().getResults(0).getCampaign();
+        }
     }
 
     /**
@@ -355,7 +383,7 @@ public class CreateCompleteCampaignBothApisPhase1 {
         AdGroupAdRotationMode rotationMode = new AdGroupAdRotationMode(AdRotationMode.OPTIMIZE);
         adGroup.setAdGroupAdRotationMode(rotationMode);
 
-        // Creates ad group bid.
+        // Creates the ad group bid.
         BiddingStrategyConfiguration biddingStrategyConfiguration = new BiddingStrategyConfiguration();
         Money cpcBidMoney = new Money();
         cpcBidMoney.setMicroAmount(500_000L);
@@ -493,7 +521,7 @@ public class CreateCompleteCampaignBothApisPhase1 {
             operations.add(keywordAdGroupCriterionOperation);
         }
 
-        // Adds the keywords.
+        // Adds the keyword.
         AdGroupCriterionReturnValue result =
                 adGroupCriterionService.mutate(operations.toArray(new AdGroupCriterionOperation[0]));
 
