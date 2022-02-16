@@ -7,7 +7,9 @@ import com.beust.jcommander.Parameter;
 import com.google.ads.googleads.lib.GoogleAdsClient;
 import com.google.ads.googleads.migration.utils.ArgumentNames;
 import com.google.ads.googleads.migration.utils.CodeSampleParams;
+import com.google.ads.googleads.v10.common.ExpandedTextAdInfo;
 import com.google.ads.googleads.v10.common.ManualCpc;
+import com.google.ads.googleads.v10.enums.AdGroupAdStatusEnum.AdGroupAdStatus;
 import com.google.ads.googleads.v10.enums.AdGroupStatusEnum.AdGroupStatus;
 import com.google.ads.googleads.v10.enums.AdGroupTypeEnum.AdGroupType;
 import com.google.ads.googleads.v10.enums.AdvertisingChannelTypeEnum.AdvertisingChannelType;
@@ -15,35 +17,36 @@ import com.google.ads.googleads.v10.enums.BudgetDeliveryMethodEnum.BudgetDeliver
 import com.google.ads.googleads.v10.enums.CampaignStatusEnum.CampaignStatus;
 import com.google.ads.googleads.v10.errors.GoogleAdsError;
 import com.google.ads.googleads.v10.errors.GoogleAdsException;
+import com.google.ads.googleads.v10.resources.Ad;
 import com.google.ads.googleads.v10.resources.AdGroup;
+import com.google.ads.googleads.v10.resources.AdGroupAd;
 import com.google.ads.googleads.v10.resources.Campaign;
 import com.google.ads.googleads.v10.resources.Campaign.NetworkSettings;
 import com.google.ads.googleads.v10.resources.CampaignBudget;
+import com.google.ads.googleads.v10.services.AdGroupAdOperation;
+import com.google.ads.googleads.v10.services.AdGroupAdServiceClient;
 import com.google.ads.googleads.v10.services.AdGroupOperation;
 import com.google.ads.googleads.v10.services.AdGroupServiceClient;
 import com.google.ads.googleads.v10.services.CampaignBudgetOperation;
 import com.google.ads.googleads.v10.services.CampaignBudgetServiceClient;
 import com.google.ads.googleads.v10.services.CampaignOperation;
 import com.google.ads.googleads.v10.services.CampaignServiceClient;
+import com.google.ads.googleads.v10.services.GoogleAdsRow;
 import com.google.ads.googleads.v10.services.GoogleAdsServiceClient;
 import com.google.ads.googleads.v10.services.GoogleAdsServiceClient.SearchPagedResponse;
+import com.google.ads.googleads.v10.services.MutateAdGroupAdResult;
+import com.google.ads.googleads.v10.services.MutateAdGroupAdsResponse;
 import com.google.ads.googleads.v10.services.MutateAdGroupsResponse;
 import com.google.ads.googleads.v10.services.MutateCampaignBudgetsResponse;
 import com.google.ads.googleads.v10.services.MutateCampaignsResponse;
 import com.google.ads.googleads.v10.services.SearchGoogleAdsRequest;
 import com.google.ads.googleads.v10.utils.ResourceNames;
 import com.google.api.ads.adwords.axis.factory.AdWordsServices;
-import com.google.api.ads.adwords.axis.v201809.cm.AdGroupAd;
-import com.google.api.ads.adwords.axis.v201809.cm.AdGroupAdOperation;
-import com.google.api.ads.adwords.axis.v201809.cm.AdGroupAdReturnValue;
-import com.google.api.ads.adwords.axis.v201809.cm.AdGroupAdServiceInterface;
-import com.google.api.ads.adwords.axis.v201809.cm.AdGroupAdStatus;
 import com.google.api.ads.adwords.axis.v201809.cm.AdGroupCriterion;
 import com.google.api.ads.adwords.axis.v201809.cm.AdGroupCriterionOperation;
 import com.google.api.ads.adwords.axis.v201809.cm.AdGroupCriterionReturnValue;
 import com.google.api.ads.adwords.axis.v201809.cm.AdGroupCriterionServiceInterface;
 import com.google.api.ads.adwords.axis.v201809.cm.BiddableAdGroupCriterion;
-import com.google.api.ads.adwords.axis.v201809.cm.ExpandedTextAd;
 import com.google.api.ads.adwords.axis.v201809.cm.Keyword;
 import com.google.api.ads.adwords.axis.v201809.cm.KeywordMatchType;
 import com.google.api.ads.adwords.axis.v201809.cm.Operator;
@@ -66,18 +69,19 @@ import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.joda.time.DateTime;
 
 /**
- * This code example is the fourth in a series of code examples that shows how to create a Search
+ * This code example is the fifth in a series of code examples that shows how to create a Search
  * campaign using the AdWords API, and then migrate it to the Google Ads API one functionality at a
  * time. See other examples for code examples in various stages of migration.
  *
- * <p>In this code example, the functionality to create a campaign budget, search campaign and ad
- * group have been migrated to the Google Ads API. The rest of the functionality - creating keywords
- * and expanded text ads are done using the AdWords API.
+ * <p>In this code example, the functionality to create a campaign budget, a search campaign, an ad
+ * group and expanded text ads have been migrated to the Google Ads API. The only remaining
+ * functionality that uses the AdWords API is creating keywords.
  */
-public class CreateCompleteCampaignBothApisPhase3 {
+public class CreateCompleteCampaignBothApisPhase4 {
 
     private static final int PAGE_SIZE = 1_000;
 
@@ -85,15 +89,15 @@ public class CreateCompleteCampaignBothApisPhase3 {
 
     private static final List<String> KEYWORDS_TO_ADD = Arrays.asList("mars cruise", "space hotel");
 
-    private static class CreateCompleteCampaignBothApisPhase3Params extends CodeSampleParams {
+    private static class CreateCompleteCampaignBothApisPhase4ParamsParams extends CodeSampleParams {
 
         @Parameter(names = ArgumentNames.CUSTOMER_ID, required = true)
         private Long customerId;
     }
 
     public static void main(String[] args) {
-        CreateCompleteCampaignBothApisPhase3Params params =
-                new CreateCompleteCampaignBothApisPhase3Params();
+        CreateCompleteCampaignBothApisPhase4ParamsParams params =
+                new CreateCompleteCampaignBothApisPhase4ParamsParams();
         if (!params.parseArguments(args)) {
 
             // Either pass the required parameters for this example on the command line, or insert them
@@ -148,7 +152,7 @@ public class CreateCompleteCampaignBothApisPhase3 {
         AdWordsServicesInterface adWordsServices = AdWordsServices.getInstance();
 
         try {
-            new CreateCompleteCampaignBothApisPhase3()
+            new CreateCompleteCampaignBothApisPhase4()
                     .runExample(googleAdsClient, adWordsServices, session, params.customerId);
         } catch (GoogleAdsException gae) {
             // GoogleAdsException is the base class for most exceptions thrown by an API request.
@@ -187,7 +191,7 @@ public class CreateCompleteCampaignBothApisPhase3 {
         CampaignBudget budget = createBudget(googleAdsClient, customerId);
         Campaign campaign = createCampaign(googleAdsClient, customerId, budget);
         AdGroup adGroup = createAdGroup(googleAdsClient, customerId, campaign);
-        createTextAds(adWordsServices, session, adGroup, NUMBER_OF_ADS);
+        createTextAds(googleAdsClient, customerId, adGroup, NUMBER_OF_ADS);
         createKeywords(adWordsServices, session, adGroup, KEYWORDS_TO_ADD);
     }
 
@@ -210,7 +214,7 @@ public class CreateCompleteCampaignBothApisPhase3 {
         // Creates the operation.
         CampaignBudgetOperation op = CampaignBudgetOperation.newBuilder().setCreate(budget).build();
 
-        // Get the CampaignBudget service.
+        // Gets the CampaignBudget service.
         try (CampaignBudgetServiceClient campaignBudgetServiceClient =
                      googleAdsClient.getLatestVersion().createCampaignBudgetServiceClient()) {
             // Adds the budget.
@@ -429,61 +433,122 @@ public class CreateCompleteCampaignBothApisPhase3 {
     /**
      * Creates text ads.
      *
-     * @param adWordsServices the Google AdWords services interface.
-     * @param session the client session.
+     * @param googleAdsClient the Google Ads API client.
+     * @param customerId the client customer ID.
      * @param adGroup the ad group for the text ad.
-     * @throws RemoteException if the API request failed due to other errors.
+     * @throws GoogleAdsException if an API request failed with one or more service errors.
      */
-    private AdGroupAd[] createTextAds(
-            AdWordsServicesInterface adWordsServices,
-            AdWordsSession session,
-            AdGroup adGroup,
-            int numberOfAds)
-            throws RemoteException {
-
-        // Gets the AdGroupAdService.
-        AdGroupAdServiceInterface adGroupAdService =
-                adWordsServices.get(session, AdGroupAdServiceInterface.class);
+    private List<AdGroupAd> createTextAds(
+            GoogleAdsClient googleAdsClient, long customerId, AdGroup adGroup, int numberOfAds) {
+        String adGroupResourceName = ResourceNames.adGroup(customerId, adGroup.getId());
 
         List<AdGroupAdOperation> operations = new ArrayList<>();
 
         for (int i = 0; i < numberOfAds; i++) {
-            // Creates the expanded text ad.
-            ExpandedTextAd expandedTextAd = new ExpandedTextAd();
-            expandedTextAd.setDescription("Buy your tickets now!");
-            expandedTextAd.setHeadlinePart1(String.format("Cruise #%d to Mars", i));
-            expandedTextAd.setHeadlinePart2("Best Space Cruise Line");
-            expandedTextAd.setFinalUrls(new String[] {"http://www.example.com/" + i});
-
-            // Creates the ad group ad.
-            AdGroupAd expandedTextAdGroupAd = new AdGroupAd();
-            expandedTextAdGroupAd.setAdGroupId(adGroup.getId());
-            expandedTextAdGroupAd.setAd(expandedTextAd);
-
-            // Optional: sets the status.
-            expandedTextAdGroupAd.setStatus(AdGroupAdStatus.PAUSED);
+            // Creates the text ad
+            AdGroupAd adgroupAd =
+                    AdGroupAd.newBuilder()
+                            .setAdGroup(adGroupResourceName)
+                            .setStatus(AdGroupAdStatus.PAUSED)
+                            .setAd(
+                                    Ad.newBuilder()
+                                            .addFinalUrls("http://www.example.com/" + String.valueOf(i))
+                                            .setExpandedTextAd(
+                                                    ExpandedTextAdInfo.newBuilder()
+                                                            .setDescription("Buy your tickets now!")
+                                                            .setHeadlinePart1(                    "Cruise #" + i + " to Mars")
+                                                            .setHeadlinePart2("Best Space Cruise Line")
+                                                            .setPath1("path1")
+                                                            .setPath2("path2")
+                                                            .build()))
+                            .build();
 
             // Creates the operation.
-            AdGroupAdOperation adGroupAdOperation = new AdGroupAdOperation();
-            adGroupAdOperation.setOperand(expandedTextAdGroupAd);
-            adGroupAdOperation.setOperator(Operator.ADD);
-
-            operations.add(adGroupAdOperation);
+            AdGroupAdOperation op = AdGroupAdOperation.newBuilder().setCreate(adgroupAd).build();
+            operations.add(op);
         }
 
-        // Adds the ads.
-        AdGroupAdReturnValue result =
-                adGroupAdService.mutate(operations.toArray(new AdGroupAdOperation[0]));
+        // Gets the AdGroupAd service.
+        try (AdGroupAdServiceClient adGroupAdServiceClient =
+                     googleAdsClient.getLatestVersion().createAdGroupAdServiceClient()) {
+            // Adds the text ads.
+            MutateAdGroupAdsResponse response =
+                    adGroupAdServiceClient.mutateAdGroupAds(Long.toString(customerId), operations);
+            System.out.printf("Added %d text ads:%n", response.getResultsCount());
+            // Creates a list of the text ad resource names.
+            List<String> newAdGroupAdResourceNames = new ArrayList<>();
+            for (MutateAdGroupAdResult result : response.getResultsList()) {
+                newAdGroupAdResourceNames.add(result.getResourceName());
+            }
 
-        // Displays the ads.
-        for (AdGroupAd adGroupAdResult : result.getValue()) {
-            ExpandedTextAd newAd = (ExpandedTextAd) adGroupAdResult.getAd();
-            System.out.printf(
-                    "Expanded text ad with ID %d "
-                            + "and headline '%s - %s' was created in ad group with ID %d.%n",
-                    newAd.getId(), newAd.getHeadlinePart1(), newAd.getHeadlinePart2(), adGroup.getId());
+            // Retrieves the expanded text ads.
+            List<AdGroupAd> newAdGroupAds =
+                    getAdGroupAds(googleAdsClient, customerId, newAdGroupAdResourceNames);
+            for (AdGroupAd newAdGroupAd : newAdGroupAds) {
+                Ad ad = newAdGroupAd.getAd();
+                ExpandedTextAdInfo expandedTextAdInfo = ad.getExpandedTextAd();
+                // Displays the results.
+                System.out.printf(
+                        "Expanded text ad with ID %s, status '%s', "
+                                + "and headline '%s - %s' was created in ad group with ID %s.%n",
+                        ad.getId(),
+                        newAdGroupAd.getStatus(),
+                        expandedTextAdInfo.getHeadlinePart1(),
+                        expandedTextAdInfo.getHeadlinePart2(),
+                        adGroup.getId());
+            }
+            return newAdGroupAds;
         }
-        return result.getValue();
+    }
+
+    /**
+     * Retrieves the ad group ads.
+     *
+     * @param googleAdsClient the Google Ads API client.
+     * @param customerId the client customer ID.
+     * @param newResourceNames resource names of the new ad group ad.
+     * @throws GoogleAdsException if an API request failed with one or more service errors.
+     */
+    private List<AdGroupAd> getAdGroupAds(
+            GoogleAdsClient googleAdsClient, long customerId, List<String> newResourceNames) {
+        // Gets the GoogleAdsService.
+        try (GoogleAdsServiceClient googleAdsServiceClient =
+                     googleAdsClient.getLatestVersion().createGoogleAdsServiceClient()) {
+
+            // Creates the request.
+            SearchGoogleAdsRequest request =
+                    SearchGoogleAdsRequest.newBuilder()
+                            .setCustomerId(Long.toString(customerId))
+                            .setPageSize(PAGE_SIZE)
+                            .setQuery(
+                                    String.format(
+                                            "SELECT "
+                                                    + "ad_group.id, "
+                                                    + "ad_group_ad.ad.id, "
+                                                    + "ad_group_ad.ad.expanded_text_ad.headline_part1, "
+                                                    + "ad_group_ad.ad.expanded_text_ad.headline_part2, "
+                                                    + "ad_group_ad.status, "
+                                                    + "ad_group_ad.ad.final_urls, "
+                                                    + "ad_group_ad.resource_name "
+                                                    + "FROM ad_group_ad "
+                                                    + "WHERE ad_group_ad.resource_name IN (%s)",
+                                            String.join(
+                                                    ", ",
+                                                    newResourceNames.stream()
+                                                            .map(resourceName -> String.format("'%s'", resourceName))
+                                                            .collect(Collectors.toList()))))
+                            .build();
+
+            // Retrieves the ad group ads
+            SearchPagedResponse response = googleAdsServiceClient.search(request);
+
+            // Creates and returns a list of the ad group ads.
+            List<AdGroupAd> adGroupAds = new ArrayList<>();
+            for (GoogleAdsRow googleAdsRow : response.iterateAll()) {
+                adGroupAds.add(googleAdsRow.getAdGroupAd());
+            }
+            return adGroupAds;
+        }
     }
 
     /**
